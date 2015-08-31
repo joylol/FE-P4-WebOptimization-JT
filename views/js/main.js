@@ -19,7 +19,7 @@ Optimized by: Joy Thomas (joythomas@outlook.com)
 // As you may have realized, this website randomly generates pizzas.
 // Here are arrays of all possible pizza ingredients.
 //Fix: Create a web worker to optimize javascript.
-var worker = new Worker('js/worker.js');
+//var worker = new Worker('js/worker.js');
 
 var pizzaIngredients = {};
 pizzaIngredients.meats = [
@@ -541,7 +541,11 @@ var resizePizzas = function (size) {
       console.log("bug in sizeSwitcher");
     }
 
-    var randomPizzas = document.querySelectorAll(".randomPizzaContainer");
+    //FIX: Use getElementsByClassName() instead of querySelectorAll() to increase speed.
+    var randomPizzas = document.getElementsByClassName('randomPizzaContainer');
+    //FIX: Iterates through the randomPizzas(the pizzas with class name of randomPizzaContainer)
+    //     and changes their widths to the set newWidth
+    //     percentages according to the slider setting designated by the user. 
     for (var i = 0; i < randomPizzas.length; i++) {
       randomPizzas[i].style.width = newWidth + "%";
     }
@@ -560,8 +564,9 @@ var resizePizzas = function (size) {
 window.performance.mark("mark_start_generating"); // collect timing data
 
 // This for-loop actually creates and appends all of the pizzas when the page loads
+// FIX: Move pizzasDiv out of the for loop and cache elements to improve loading time.
+var pizzasDiv = document.getElementById("randomPizzas");
 for (var i = 2; i < 100; i++) {
-  var pizzasDiv = document.getElementById("randomPizzas");
   pizzasDiv.appendChild(pizzaElementGenerator(i));
 }
 
@@ -598,17 +603,35 @@ function updatePositions() {
 
   var items = document.getElementsByClassName('mover');
 
-  //Fix: Use web worker to calculate phase in order to prevent Javascript bottleneck.
+  /*FIX: A simpler fix per the suggestion of my reviewer: Move the Math.sin
+  calculation out of the original for-loop and cache all the calculations for
+  var phase. */
+  var phase = [];
+
+  var docScroll = document.body.scrollTop;
+
+  for (var i = 0; i < 5; i++) {
+    phase.push(Math.sin(docScroll / 1250 + i) * 100);
+  }
+
+  for (var i = 0; i < items.length; i++) {
+    items[i].style.left = items[i].basicLeft + phase[i%5] + 'px';
+  }
+
+  /*
+  //Fix: My original fix: Use web worker to calculate phase in order to prevent Javascript bottleneck.
   var docScroll = document.body.scrollTop;
 
   worker.postMessage(docScroll);
 
   worker.onmessage = function (e) {
     var phase = e.data;
-    for (var i = 0; i < 30; i++) {
-      items[i].style.left = items[i].basicLeft + 100 * phase + 'px';
+    for (var i = 0; i < items.length; i++) {
+      items[i].style.left = items[i].basicLeft + 100 * phase[i] + 'px';
     }
   };
+  */
+
   // User Timing API to the rescue again. Seriously, it's worth learning.
   // Super easy to create custom metrics.
   window.performance.mark("mark_end_frame");
@@ -628,7 +651,10 @@ window.addEventListener('scroll', updatePositions);
 document.addEventListener('DOMContentLoaded', function () {
   var cols = 8;
   var s = 256;
-  for (var i = 0; i < 30; i++) { //Fix: change 200 to 30 because 200 pizzas are not displayed at screen.
+  //Fix: Change 200 to pizzaNumber because 200 pizzas are not displayed at screen.
+  var pizzaNumber = window.innerHeight / 30;
+  console.log(pizzaNumber);
+  for (var i = 0; i < pizzaNumber; i++) { 
     var elem = document.createElement('img');
     elem.className = 'mover';
     elem.src = "images/pizza.png";
